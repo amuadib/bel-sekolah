@@ -1,6 +1,3 @@
-Berikut draf file **`README.md`** yang sudah disesuaikan dengan seluruh fitur dan struktur aplikasi Bel Sekolah kamu. Tinggal kamu salin ke dalam file `README.md` di repositori GitHub-mu.
-
-```markdown
 # 🔔 Bel Sekolah - SDI Miftahul Ulum Klemunan
 
 Aplikasi manajemen bel otomatis berbasis desktop yang dibuat menggunakan **JavaFX**. Aplikasi ini dirancang untuk memutar bel jadwal pelajaran, lagu harian, serta audio kustom secara otomatis dan presisi, lengkap dengan dukungan berjalan di *background* (*System Tray*).
