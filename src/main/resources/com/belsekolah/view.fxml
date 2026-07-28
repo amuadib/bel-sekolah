@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<HBox spacing="16" stylesheets="@style.css" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.belsekolah.MainApp">
+    <padding>
+        <Insets bottom="16" left="16" right="16" top="16" />
+    </padding>
+
+    <!-- PANEL KIRI: Dashboard & Kontrol Audio -->
+    <VBox prefWidth="440" spacing="14">
+
+        <!-- Header Judul Sekolah -->
+        <VBox alignment="CENTER" spacing="2" styleClass="card">
+            <Label text="Bel Sekolah" styleClass="header-subtitle" />
+            <Label text="SDI Miftahul Ulum Klemunan" styleClass="header-title" />
+        </VBox>
+
+        <VBox spacing="10" styleClass="card">
+            <Label text="Informasi Waktu" styleClass="card-header" />
+
+            <HBox alignment="CENTER_LEFT" spacing="10">
+                <VBox HBox.hgrow="ALWAYS">
+                    <Label fx:id="lblHari" text="Hari: Senin, 28 Juli 2026" style="-fx-text-fill: #475569; -fx-font-weight: bold;" />
+                    <Label fx:id="lblJam" text="00:00:00" styleClass="time-display" />
+                </VBox>
+                <Label fx:id="lblStatus" text="Status: Menunggu" styleClass="status-badge" />
+            </HBox>
+
+            <VBox spacing="4" styleClass="next-schedule-box">
+                <Label text="JADWAL BERIKUTNYA" style="-fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: #64748b;" />
+                <Label fx:id="lblJadwalBerikutnya" text="-- : --" style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #0f172a;" />
+            </VBox>
+        </VBox>
+
+        <!-- Card Pemutar Suara Manual -->
+        <VBox spacing="10" styleClass="card">
+            <Label text="Putar Suara Manual" styleClass="card-header" />
+
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <ComboBox fx:id="cbCustomAudio" promptText="-- Pilih File Suara --" HBox.hgrow="ALWAYS" maxWidth="Infinity" />
+                <Button fx:id="btnCustomPlay" onAction="#handlePlay" text="▶" styleClass="btn-primary" />
+                <Button fx:id="btnCustomPause" disable="true" onAction="#handlePause" text="⏸" />
+                <Button fx:id="btnCustomStop" disable="true" onAction="#handleStop" text="⏹" />
+            </HBox>
+        </VBox>
+
+        <!-- Card Lagu Hari Ini -->
+        <VBox spacing="10" styleClass="card">
+            <Label text="Lagu Hari Ini" styleClass="card-header" />
+            <VBox fx:id="containerLaguHariIni" spacing="6" />
+        </VBox>
+
+        <!-- Tombol Toggle Jadwal -->
+        <Button fx:id="btnToggleJadwal" onAction="#toggleJadwalPanel" text="Sembunyikan Jadwal" styleClass="btn-secondary" maxWidth="Infinity" />
+        <HBox alignment="CENTER" spacing="4">
+            <padding>
+                <Insets top="4" />
+            </padding>
+            <Hyperlink text="Halaman GitHub" onAction="#openGithub" styleClass="github-link" />
+        </HBox>
+    </VBox>
+
+    <!-- PANEL KANAN: Tabel Jadwal Hari Ini -->
+    <VBox fx:id="panelJadwal" prefWidth="320" spacing="10" styleClass="card">
+        <Label text="Jadwal Hari Ini" styleClass="card-header" />
+
+        <TableView fx:id="tableJadwal" VBox.vgrow="ALWAYS">
+            <columns>
+                <TableColumn fx:id="colJam" prefWidth="80" text="Jam" />
+                <TableColumn fx:id="colJadwal" prefWidth="220" text="Jadwal" />
+            </columns>
+        </TableView>
+        <HBox spacing="8" alignment="CENTER_RIGHT">
+            <Button text="Tambah" onAction="#handleTambahJadwal" styleClass="btn-primary" />
+            <Button text="Edit" onAction="#handleEditJadwal" styleClass="btn-secondary" />
+            <Button text="Hapus" onAction="#handleHapusJadwal" style="-fx-background-color: #ef4444; -fx-text-fill: white;" />
+        </HBox>
+    </VBox>
+</HBox>
