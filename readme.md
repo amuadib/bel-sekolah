@@ -120,3 +120,7 @@ File JAR hasil build akan tersimpan di dalam folder `target/`.
 Dikembangkan untuk **SDI Miftahul Ulum Klemunan**.
 
 Dikembangkan oleh [amuadib](https://github.com/amuadib). Lisensi bersifat terbuka untuk penggunaan dan pengembangan edukasional.
+
+## Sponsor
+
+Buy me a coffee (or tea, or snacks) :) [Ko-Fi](https://ko-fi.com/amuadib)
