@@ -72,7 +72,7 @@ Sebelum melakukan kompilasi dan menjalankan aplikasi, pastikan sistem kamu sudah
 ### 1. Clone Repositori
 
 ```bash
-git clone [https://github.com/amuadib/bel-sekolah.git](https://github.com/amuadib/bel-sekolah.git)
+git clone https://github.com/amuadib/bel-sekolah.git
 cd bel-sekolah
 
 ```
