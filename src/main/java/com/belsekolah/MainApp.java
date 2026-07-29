@@ -67,6 +67,7 @@ public class MainApp extends Application {
     @FXML private Pane paneRunningText;
     @FXML private Label lblRunningText;
     @FXML private Button btnCentralPlay, btnCentralPause, btnCentralStop;
+    @FXML private Button btnAutoStart;
 
     private TranslateTransition runningTextAnimation;
 
@@ -167,8 +168,39 @@ public class MainApp extends Application {
         updateMediaButtonStates(false, false);
         setupRunningTextClipping();
         updateRunningText("Tidak ada audio diputar");
+        checkAutoStartStatus();
     }
+    private void checkAutoStartStatus() {
+        if (AutoStartManager.isWindows()) {
+            boolean isAutoStartOn = AutoStartManager.isAutoStartEnabled();
 
+            // Tampilkan tombol HANYA jika Auto-Start belum aktif
+            btnAutoStart.setVisible(!isAutoStartOn);
+            btnAutoStart.setManaged(!isAutoStartOn);
+        } else {
+            btnAutoStart.setVisible(false);
+            btnAutoStart.setManaged(false);
+        }
+    }
+    @FXML
+    private void handleEnableAutoStart() {
+        boolean success = AutoStartManager.enableAutoStart();
+
+        if (success) {
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            alert.setTitle("Auto-Start Windows");
+            alert.setHeaderText("Berhasil Dikonfigurasi");
+            alert.setContentText("Aplikasi Bel Sekolah akan otomatis berjalan setiap kali Windows dinyalakan.");
+            alert.showAndWait();
+
+            // Sembunyikan tombol setelah berhasil
+            checkAutoStartStatus();
+        } else {
+            showErrorAlert("Gagal Auto-Start",
+                    "Tidak Dapat Membuat Auto-Start",
+                    "Gagal menambahkan aplikasi ke folder Startup Windows.");
+        }
+    }
     private boolean checkSingleInstance() {
         try {
             lockSocket = new ServerSocket(PORT_SINGLE_INSTANCE, 1, InetAddress.getByName("127.0.0.1"));

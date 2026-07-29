@@ -60,6 +60,12 @@
         </VBox>
 
         <Button fx:id="btnToggleJadwal" onAction="#toggleJadwalPanel" text="Sembunyikan Jadwal" maxWidth="Infinity" />
+        <Button fx:id="btnAutoStart"
+                text="🚀 Aktifkan Auto-Start Windows"
+                onAction="#handleEnableAutoStart"
+                visible="false"
+                managed="false"
+                style="-fx-background-color: #ff9800; -fx-text-fill: white; -fx-font-weight: bold;" maxWidth="Infinity"/>
         <Hyperlink onAction="#openGithub" text="Tentang program" alignment="CENTER" maxWidth="Infinity" />
     </VBox>
 
