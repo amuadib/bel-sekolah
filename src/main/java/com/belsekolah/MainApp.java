@@ -3,7 +3,6 @@ package com.belsekolah;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.animation.TranslateTransition;
-import javafx.scene.shape.Rectangle;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
@@ -16,6 +15,7 @@ import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
+import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
@@ -27,6 +27,8 @@ import java.awt.SystemTray;
 import java.awt.TrayIcon;
 import java.awt.image.BufferedImage;
 import java.io.*;
+import java.net.InetAddress;
+import java.net.ServerSocket;
 import java.nio.file.Files;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -34,12 +36,18 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
-
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class MainApp extends Application {
+
     private static final Logger LOGGER = Logger.getLogger(MainApp.class.getName());
+
+    // Single Instance Lock Port
+    private static final int PORT_SINGLE_INSTANCE = 9999;
+    private static ServerSocket lockSocket;
+    private boolean isAnotherInstanceRunning = false;
+
     // =========================================================================
     // CONSTANTS & FORMATTERS
     // =========================================================================
@@ -52,7 +60,6 @@ public class MainApp extends Application {
     // =========================================================================
     @FXML private Label lblHari, lblJam, lblStatus, lblJadwalBerikutnya;
     @FXML private Button btnToggleJadwal;
-//    @FXML private Button btnToggleJadwal, btnCustomPlay, btnCustomPause, btnCustomStop;
     @FXML private ComboBox<String> cbCustomAudio;
     @FXML private VBox panelJadwal, containerLaguHariIni;
     @FXML private TableView<Jadwal> tableJadwal;
@@ -60,10 +67,8 @@ public class MainApp extends Application {
     @FXML private Pane paneRunningText;
     @FXML private Label lblRunningText;
     @FXML private Button btnCentralPlay, btnCentralPause, btnCentralStop;
-//    @FXML private ToggleButton btnCentralRepeat;
 
     private TranslateTransition runningTextAnimation;
-//    private boolean isRepeatEnabled = false;
 
     // =========================================================================
     // STATE & DATA VARIABLES
@@ -89,8 +94,32 @@ public class MainApp extends Application {
     // =========================================================================
     // LIFECYCLE & INITIALIZATION
     // =========================================================================
+
+    @Override
+    public void init() throws Exception {
+        // Pengecekan Single Instance dilakukan di tahap init lifecycle JavaFX
+        if (!checkSingleInstance()) {
+            isAnotherInstanceRunning = true;
+        }
+    }
+
     @Override
     public void start(Stage stage) throws Exception {
+        // Jika terdeteksi instance lain yang berjalan, langsung tampilkan dialog dan keluar
+        if (isAnotherInstanceRunning) {
+            LOGGER.log(Level.WARNING, "Aplikasi Bel Sekolah sudah berjalan di instance lain!");
+
+            Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.setTitle("Aplikasi Sudah Berjalan");
+            alert.setHeaderText("Bel Sekolah Sudah Aktif");
+            alert.setContentText("Aplikasi Bel Sekolah sudah berjalan di latar belakang (System Tray).\nTidak bisa membuka lebih dari satu aplikasi.");
+            alert.showAndWait();
+
+            Platform.exit();
+            System.exit(0);
+            return;
+        }
+
         Platform.setImplicitExit(false);
 
         FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("view.fxml"));
@@ -140,6 +169,28 @@ public class MainApp extends Application {
         updateRunningText("Tidak ada audio diputar");
     }
 
+    private boolean checkSingleInstance() {
+        try {
+            lockSocket = new ServerSocket(PORT_SINGLE_INSTANCE, 1, InetAddress.getByName("127.0.0.1"));
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    @Override
+    public void stop() throws Exception {
+        // Lepas lock socket saat aplikasi benar-benar ditutup
+        if (lockSocket != null && !lockSocket.isClosed()) {
+            try {
+                lockSocket.close();
+            } catch (Exception e) {
+                LOGGER.log(Level.SEVERE, "Gagal menutup lock socket single instance", e);
+            }
+        }
+        super.stop();
+    }
+
     // =========================================================================
     // LOGIKA RUNNING TEXT & CENTRAL CONTROLLER
     // =========================================================================
@@ -172,7 +223,6 @@ public class MainApp extends Application {
         });
     }
 
-    // Helper Pengecekan Status Media
     private boolean isAnyPlaying() {
         return (customMediaPlayer != null && customMediaPlayer.getStatus() == MediaPlayer.Status.PLAYING)
                 || (laguMediaPlayer != null && laguMediaPlayer.getStatus() == MediaPlayer.Status.PLAYING)
@@ -185,7 +235,6 @@ public class MainApp extends Application {
                 || (scheduledMediaPlayer != null && scheduledMediaPlayer.getStatus() == MediaPlayer.Status.PAUSED);
     }
 
-    // Handler Tombol Central Player
     @FXML
     private void handleCentralPlay() {
         if (customMediaPlayer != null && customMediaPlayer.getStatus() == MediaPlayer.Status.PAUSED) {
@@ -218,16 +267,6 @@ public class MainApp extends Application {
     private void handleCentralStop() {
         stopAllAudio();
     }
-
-//    @FXML
-//    private void handleCentralRepeat() {
-//        isRepeatEnabled = btnCentralRepeat.isSelected();
-//        if (isRepeatEnabled) {
-//            btnCentralRepeat.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white;");
-//        } else {
-//            btnCentralRepeat.setStyle("");
-//        }
-//    }
 
     // =========================================================================
     // CLOCK & SCHEDULE SCHEDULER
@@ -321,7 +360,7 @@ public class MainApp extends Application {
                 }
             }
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "File tidak dapat dibaca", e);
+            LOGGER.log(Level.SEVERE, "File jadwal.dat tidak dapat dibaca", e);
         }
 
         if (panelJadwal != null && panelJadwal.isVisible()) {
@@ -355,7 +394,7 @@ public class MainApp extends Application {
                 }
             }
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "File tidak dapat dibaca", e);
+            LOGGER.log(Level.SEVERE, "File lagu.dat tidak dapat dibaca", e);
         }
 
         renderLaguHariIni();
@@ -646,14 +685,7 @@ public class MainApp extends Application {
 
     private void attachEndOfMediaHandler(MediaPlayer player, Runnable defaultOnEnd) {
         if (player == null) return;
-        player.setOnEndOfMedia(() -> {
-//            if (isRepeatEnabled) {
-//                player.seek(Duration.ZERO);
-//                player.play();
-//            } else {
-//                defaultOnEnd.run();
-//            }
-        });
+        player.setOnEndOfMedia(defaultOnEnd);
     }
 
     private void handlePlayStopLagu(Lagu lagu, Button btn) {
@@ -719,23 +751,6 @@ public class MainApp extends Application {
         }
     }
 
-//    @FXML
-//    private void handleStop() {
-//        stopAllAudio();
-//    }
-
-//    @FXML
-//    private void handlePause() {
-//        if (customMediaPlayer != null && customMediaPlayer.getStatus() == MediaPlayer.Status.PLAYING) {
-//            customMediaPlayer.pause();
-//        } else if (laguMediaPlayer != null && laguMediaPlayer.getStatus() == MediaPlayer.Status.PLAYING) {
-//            laguMediaPlayer.pause();
-//        } else if (scheduledMediaPlayer != null && scheduledMediaPlayer.getStatus() == MediaPlayer.Status.PLAYING) {
-//            scheduledMediaPlayer.pause();
-//        }
-//        updateMediaButtonStates(false, true);
-//    }
-
     private void pauseMediaForSchedule() {
         customWasPausedBySchedule = false;
         laguWasPausedBySchedule = false;
@@ -799,7 +814,6 @@ public class MainApp extends Application {
         updateMediaButtonStates(false, false);
         setStatusText("Status: Menunggu jadwal berikutnya");
 
-        // Reset running text ke kondisi default
         updateRunningText("Tidak ada audio diputar");
     }
 
@@ -828,12 +842,6 @@ public class MainApp extends Application {
         boolean hasSelectedCustomAudio = cbCustomAudio != null && cbCustomAudio.getValue() != null && !cbCustomAudio.getValue().isEmpty();
         boolean canPlayOrResume = isPaused || hasSelectedCustomAudio;
 
-        // Custom Buttons
-//        if (btnCustomPlay != null) btnCustomPlay.setDisable(isPlaying || !hasSelectedCustomAudio);
-//        if (btnCustomPause != null) btnCustomPause.setDisable(!isPlaying);
-//        if (btnCustomStop != null) btnCustomStop.setDisable(!isPlaying && !isPaused);
-
-        // Central Player Buttons
         if (btnCentralPlay != null) btnCentralPlay.setDisable(isPlaying || !canPlayOrResume);
         if (btnCentralPause != null) btnCentralPause.setDisable(!isPlaying);
         if (btnCentralStop != null) btnCentralStop.setDisable(!isPlaying && !isPaused);
@@ -863,7 +871,7 @@ public class MainApp extends Application {
         try {
             SystemTray.getSystemTray().add(trayIcon);
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Error", e);
+            LOGGER.log(Level.SEVERE, "Error saat menambahkan SystemTray", e);
         }
     }
 
