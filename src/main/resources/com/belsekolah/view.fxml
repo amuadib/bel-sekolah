@@ -43,7 +43,7 @@
             <Pane fx:id="paneRunningText" prefHeight="35" style="-fx-background-color: #1a1a1a;">
                 <Label fx:id="lblRunningText" text="Tidak ada audio diputar" layoutY="7" style="-fx-text-fill: #00ffcc; -fx-font-family: 'Monospaced'; -fx-font-size: 13px; -fx-font-weight: bold;" />
             </Pane>
-
+            <ComboBox fx:id="cbCustomAudio" maxWidth="Infinity" promptText="-- Pilih File Suara --" HBox.hgrow="ALWAYS" />
             <!-- Control Buttons (Diatur Status Awal Disable) -->
             <HBox alignment="CENTER" spacing="10">
                 <Button fx:id="btnCentralPlay" disable="true" onAction="#handleCentralPlay" text="▶" style="-fx-font-size: 14px; -fx-min-width: 45px;" />
@@ -53,20 +53,9 @@
             </HBox>
         </VBox>
 
-        <!-- Card 3: Putar Suara Manual -->
-        <VBox spacing="10" styleClass="card">
-            <Label text="Putar Suara Manual" styleClass="card-header" />
-            <HBox alignment="CENTER_LEFT" spacing="8">
-                <ComboBox fx:id="cbCustomAudio" maxWidth="Infinity" promptText="-- Pilih File Suara --" HBox.hgrow="ALWAYS" />
-                <Button fx:id="btnCustomPlay" disable="true" onAction="#handlePlay" text="▶" />
-                <Button fx:id="btnCustomPause" disable="true" onAction="#handlePause" text="⏸" />
-                <Button fx:id="btnCustomStop" disable="true" onAction="#handleStop" text="⏹" />
-            </HBox>
-        </VBox>
-
         <!-- Card 4: Lagu Hari Ini -->
         <VBox spacing="10" styleClass="card">
-            <Label text="Lagu Hari Ini" styleClass="card-header" />
+            <Label text="Lagu Hari Ini" styleClass="card-header" style="-fx-font-weight:bold;"/>
             <VBox fx:id="containerLaguHariIni" spacing="6" />
         </VBox>
 

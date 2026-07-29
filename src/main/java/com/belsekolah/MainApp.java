@@ -48,7 +48,8 @@ public class MainApp extends Application {
     // FXML BINDINGS
     // =========================================================================
     @FXML private Label lblHari, lblJam, lblStatus, lblJadwalBerikutnya;
-    @FXML private Button btnToggleJadwal, btnCustomPlay, btnCustomPause, btnCustomStop;
+    @FXML private Button btnToggleJadwal;
+//    @FXML private Button btnToggleJadwal, btnCustomPlay, btnCustomPause, btnCustomStop;
     @FXML private ComboBox<String> cbCustomAudio;
     @FXML private VBox panelJadwal, containerLaguHariIni;
     @FXML private TableView<Jadwal> tableJadwal;
@@ -56,10 +57,10 @@ public class MainApp extends Application {
     @FXML private Pane paneRunningText;
     @FXML private Label lblRunningText;
     @FXML private Button btnCentralPlay, btnCentralPause, btnCentralStop;
-    @FXML private ToggleButton btnCentralRepeat;
+//    @FXML private ToggleButton btnCentralRepeat;
 
     private TranslateTransition runningTextAnimation;
-    private boolean isRepeatEnabled = false;
+//    private boolean isRepeatEnabled = false;
 
     // =========================================================================
     // STATE & DATA VARIABLES
@@ -215,15 +216,15 @@ public class MainApp extends Application {
         stopAllAudio();
     }
 
-    @FXML
-    private void handleCentralRepeat() {
-        isRepeatEnabled = btnCentralRepeat.isSelected();
-        if (isRepeatEnabled) {
-            btnCentralRepeat.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white;");
-        } else {
-            btnCentralRepeat.setStyle("");
-        }
-    }
+//    @FXML
+//    private void handleCentralRepeat() {
+//        isRepeatEnabled = btnCentralRepeat.isSelected();
+//        if (isRepeatEnabled) {
+//            btnCentralRepeat.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white;");
+//        } else {
+//            btnCentralRepeat.setStyle("");
+//        }
+//    }
 
     // =========================================================================
     // CLOCK & SCHEDULE SCHEDULER
@@ -644,12 +645,12 @@ public class MainApp extends Application {
     private void attachEndOfMediaHandler(MediaPlayer player, Runnable defaultOnEnd) {
         if (player == null) return;
         player.setOnEndOfMedia(() -> {
-            if (isRepeatEnabled) {
-                player.seek(Duration.ZERO);
-                player.play();
-            } else {
-                defaultOnEnd.run();
-            }
+//            if (isRepeatEnabled) {
+//                player.seek(Duration.ZERO);
+//                player.play();
+//            } else {
+//                defaultOnEnd.run();
+//            }
         });
     }
 
@@ -716,22 +717,22 @@ public class MainApp extends Application {
         }
     }
 
-    @FXML
-    private void handleStop() {
-        stopAllAudio();
-    }
+//    @FXML
+//    private void handleStop() {
+//        stopAllAudio();
+//    }
 
-    @FXML
-    private void handlePause() {
-        if (customMediaPlayer != null && customMediaPlayer.getStatus() == MediaPlayer.Status.PLAYING) {
-            customMediaPlayer.pause();
-        } else if (laguMediaPlayer != null && laguMediaPlayer.getStatus() == MediaPlayer.Status.PLAYING) {
-            laguMediaPlayer.pause();
-        } else if (scheduledMediaPlayer != null && scheduledMediaPlayer.getStatus() == MediaPlayer.Status.PLAYING) {
-            scheduledMediaPlayer.pause();
-        }
-        updateMediaButtonStates(false, true);
-    }
+//    @FXML
+//    private void handlePause() {
+//        if (customMediaPlayer != null && customMediaPlayer.getStatus() == MediaPlayer.Status.PLAYING) {
+//            customMediaPlayer.pause();
+//        } else if (laguMediaPlayer != null && laguMediaPlayer.getStatus() == MediaPlayer.Status.PLAYING) {
+//            laguMediaPlayer.pause();
+//        } else if (scheduledMediaPlayer != null && scheduledMediaPlayer.getStatus() == MediaPlayer.Status.PLAYING) {
+//            scheduledMediaPlayer.pause();
+//        }
+//        updateMediaButtonStates(false, true);
+//    }
 
     private void pauseMediaForSchedule() {
         customWasPausedBySchedule = false;
@@ -826,9 +827,9 @@ public class MainApp extends Application {
         boolean canPlayOrResume = isPaused || hasSelectedCustomAudio;
 
         // Custom Buttons
-        if (btnCustomPlay != null) btnCustomPlay.setDisable(isPlaying || !hasSelectedCustomAudio);
-        if (btnCustomPause != null) btnCustomPause.setDisable(!isPlaying);
-        if (btnCustomStop != null) btnCustomStop.setDisable(!isPlaying && !isPaused);
+//        if (btnCustomPlay != null) btnCustomPlay.setDisable(isPlaying || !hasSelectedCustomAudio);
+//        if (btnCustomPause != null) btnCustomPause.setDisable(!isPlaying);
+//        if (btnCustomStop != null) btnCustomStop.setDisable(!isPlaying && !isPaused);
 
         // Central Player Buttons
         if (btnCentralPlay != null) btnCentralPlay.setDisable(isPlaying || !canPlayOrResume);
