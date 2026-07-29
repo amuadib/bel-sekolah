@@ -2,6 +2,8 @@ package com.belsekolah;
 
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
+import javafx.animation.TranslateTransition;
+import javafx.scene.shape.Rectangle;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
@@ -51,6 +53,13 @@ public class MainApp extends Application {
     @FXML private VBox panelJadwal, containerLaguHariIni;
     @FXML private TableView<Jadwal> tableJadwal;
     @FXML private TableColumn<Jadwal, String> colJam, colJadwal;
+    @FXML private Pane paneRunningText;
+    @FXML private Label lblRunningText;
+    @FXML private Button btnCentralPlay, btnCentralPause, btnCentralStop;
+    @FXML private ToggleButton btnCentralRepeat;
+
+    private TranslateTransition runningTextAnimation;
+    private boolean isRepeatEnabled = false;
 
     // =========================================================================
     // STATE & DATA VARIABLES
@@ -112,12 +121,108 @@ public class MainApp extends Application {
         loadCustomAudioFiles();
         checkAndPlaySchedule();
 
+        // Listener untuk pilihan audio custom agar status tombol langsung ter-update
+        cbCustomAudio.valueProperty().addListener((obs, oldVal, newVal) ->
+                updateMediaButtonStates(isAnyPlaying(), isAnyPaused())
+        );
+
         // Setup Timer / Clock Handler (Setiap 1 Detik)
         Timeline clock = new Timeline(new KeyFrame(Duration.seconds(1), e -> updateClockAndCheckSchedule()));
         clock.setCycleCount(Timeline.INDEFINITE);
         clock.play();
 
         updateMediaButtonStates(false, false);
+        setupRunningTextClipping();
+        updateRunningText("Tidak ada audio diputar");
+    }
+
+    // =========================================================================
+    // LOGIKA RUNNING TEXT & CENTRAL CONTROLLER
+    // =========================================================================
+
+    private void setupRunningTextClipping() {
+        Rectangle clip = new Rectangle();
+        clip.widthProperty().bind(paneRunningText.widthProperty());
+        clip.heightProperty().bind(paneRunningText.heightProperty());
+        paneRunningText.setClip(clip);
+    }
+
+    private void updateRunningText(String text) {
+        Platform.runLater(() -> {
+            if (runningTextAnimation != null) {
+                runningTextAnimation.stop();
+            }
+
+            lblRunningText.setText(text);
+            lblRunningText.setTranslateX(paneRunningText.getWidth());
+
+            double textWidth = lblRunningText.getLayoutBounds().getWidth();
+            double paneWidth = paneRunningText.getWidth() > 0 ? paneRunningText.getWidth() : 400;
+
+            runningTextAnimation = new TranslateTransition(Duration.seconds(8), lblRunningText);
+            runningTextAnimation.setFromX(paneWidth);
+            runningTextAnimation.setToX(-textWidth - 20);
+            runningTextAnimation.setCycleCount(TranslateTransition.INDEFINITE);
+            runningTextAnimation.setInterpolator(javafx.animation.Interpolator.LINEAR);
+            runningTextAnimation.play();
+        });
+    }
+
+    // Helper Pengecekan Status Media
+    private boolean isAnyPlaying() {
+        return (customMediaPlayer != null && customMediaPlayer.getStatus() == MediaPlayer.Status.PLAYING)
+                || (laguMediaPlayer != null && laguMediaPlayer.getStatus() == MediaPlayer.Status.PLAYING)
+                || (scheduledMediaPlayer != null && scheduledMediaPlayer.getStatus() == MediaPlayer.Status.PLAYING);
+    }
+
+    private boolean isAnyPaused() {
+        return (customMediaPlayer != null && customMediaPlayer.getStatus() == MediaPlayer.Status.PAUSED)
+                || (laguMediaPlayer != null && laguMediaPlayer.getStatus() == MediaPlayer.Status.PAUSED)
+                || (scheduledMediaPlayer != null && scheduledMediaPlayer.getStatus() == MediaPlayer.Status.PAUSED);
+    }
+
+    // Handler Tombol Central Player
+    @FXML
+    private void handleCentralPlay() {
+        if (customMediaPlayer != null && customMediaPlayer.getStatus() == MediaPlayer.Status.PAUSED) {
+            customMediaPlayer.play();
+            updateMediaButtonStates(true, false);
+        } else if (laguMediaPlayer != null && laguMediaPlayer.getStatus() == MediaPlayer.Status.PAUSED) {
+            laguMediaPlayer.play();
+            updateMediaButtonStates(true, false);
+        } else if (scheduledMediaPlayer != null && scheduledMediaPlayer.getStatus() == MediaPlayer.Status.PAUSED) {
+            scheduledMediaPlayer.play();
+            updateMediaButtonStates(true, false);
+        } else if (cbCustomAudio.getValue() != null) {
+            handlePlay();
+        }
+    }
+
+    @FXML
+    private void handleCentralPause() {
+        if (customMediaPlayer != null && customMediaPlayer.getStatus() == MediaPlayer.Status.PLAYING) {
+            customMediaPlayer.pause();
+        } else if (laguMediaPlayer != null && laguMediaPlayer.getStatus() == MediaPlayer.Status.PLAYING) {
+            laguMediaPlayer.pause();
+        } else if (scheduledMediaPlayer != null && scheduledMediaPlayer.getStatus() == MediaPlayer.Status.PLAYING) {
+            scheduledMediaPlayer.pause();
+        }
+        updateMediaButtonStates(false, true);
+    }
+
+    @FXML
+    private void handleCentralStop() {
+        stopAllAudio();
+    }
+
+    @FXML
+    private void handleCentralRepeat() {
+        isRepeatEnabled = btnCentralRepeat.isSelected();
+        if (isRepeatEnabled) {
+            btnCentralRepeat.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white;");
+        } else {
+            btnCentralRepeat.setStyle("");
+        }
     }
 
     // =========================================================================
@@ -127,10 +232,9 @@ public class MainApp extends Application {
         LocalDate now = LocalDate.now();
         LocalTime timeNow = LocalTime.now();
 
-        lblHari.setText("Hari: " + now.format(DATE_FORMATTER));
-        lblJam.setText("Jam: " + timeNow.format(TIME_FORMATTER));
+        lblHari.setText(now.format(DATE_FORMATTER));
+        lblJam.setText(timeNow.format(TIME_FORMATTER));
 
-        // Pengecekan per menit (pada detik ke-0)
         if (timeNow.getSecond() == 0) {
             checkFileModifications();
             checkAndPlaySchedule();
@@ -150,14 +254,12 @@ public class MainApp extends Application {
 
         for (Jadwal j : listJadwal) {
             if (j.hari() == currentDayOfWeek) {
-                // Cari jadwal berikutnya hari ini
                 if (j.jam().isAfter(timeNow)) {
                     if (nextJadwal == null || j.jam().isBefore(nextJadwal.jam())) {
                         nextJadwal = j;
                     }
                 }
 
-                // Eksekusi Bel
                 if (j.jam().equals(timeNow)) {
                     String currentKey = currentDayOfWeek + "-" + j.jam();
                     if (!lastPlayedKey.equals(currentKey)) {
@@ -499,8 +601,10 @@ public class MainApp extends Application {
         if (path.trim().equalsIgnoreCase("BEL.mp3")) {
             scheduledMediaPlayer = new MediaPlayer(new Media(mainAudioFile.toURI().toString()));
             setStatusText("Status: Memutar " + label);
-            scheduledMediaPlayer.setOnEndOfMedia(this::resumeMediaAfterSchedule);
+            updateRunningText("JADWAL BEL: " + label);
+            attachEndOfMediaHandler(scheduledMediaPlayer, this::resumeMediaAfterSchedule);
             scheduledMediaPlayer.play();
+            updateMediaButtonStates(true, false);
             return;
         }
 
@@ -510,8 +614,9 @@ public class MainApp extends Application {
         Runnable playPenutupAction = () -> {
             if (penutupFile.exists()) {
                 scheduledMediaPlayer = new MediaPlayer(new Media(penutupFile.toURI().toString()));
-                scheduledMediaPlayer.setOnEndOfMedia(this::resumeMediaAfterSchedule);
+                attachEndOfMediaHandler(scheduledMediaPlayer, this::resumeMediaAfterSchedule);
                 scheduledMediaPlayer.play();
+                updateMediaButtonStates(true, false);
             } else {
                 resumeMediaAfterSchedule();
             }
@@ -520,18 +625,32 @@ public class MainApp extends Application {
         Runnable playMainAudioAction = () -> {
             scheduledMediaPlayer = new MediaPlayer(new Media(mainAudioFile.toURI().toString()));
             setStatusText("Status: Memutar " + label);
-            scheduledMediaPlayer.setOnEndOfMedia(playPenutupAction);
+            attachEndOfMediaHandler(scheduledMediaPlayer, playPenutupAction);
             scheduledMediaPlayer.play();
+            updateMediaButtonStates(true, false);
         };
 
         if (pembukaFile.exists()) {
             scheduledMediaPlayer = new MediaPlayer(new Media(pembukaFile.toURI().toString()));
             setStatusText("Status: Memutar " + label);
-            scheduledMediaPlayer.setOnEndOfMedia(playMainAudioAction);
+            attachEndOfMediaHandler(scheduledMediaPlayer, playMainAudioAction);
             scheduledMediaPlayer.play();
+            updateMediaButtonStates(true, false);
         } else {
             playMainAudioAction.run();
         }
+    }
+
+    private void attachEndOfMediaHandler(MediaPlayer player, Runnable defaultOnEnd) {
+        if (player == null) return;
+        player.setOnEndOfMedia(() -> {
+            if (isRepeatEnabled) {
+                player.seek(Duration.ZERO);
+                player.play();
+            } else {
+                defaultOnEnd.run();
+            }
+        });
     }
 
     private void handlePlayStopLagu(Lagu lagu, Button btn) {
@@ -551,8 +670,10 @@ public class MainApp extends Application {
 
                 btn.setText("⏹");
                 setStatusText("Status: Memutar " + lagu.label());
-                laguMediaPlayer.setOnEndOfMedia(this::stopAllAudio);
+                updateRunningText("Lagu Hari Ini: " + lagu.label());
+                attachEndOfMediaHandler(laguMediaPlayer, this::stopAllAudio);
                 laguMediaPlayer.play();
+                updateMediaButtonStates(true, false);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -580,10 +701,11 @@ public class MainApp extends Application {
         if (audioFile.exists()) {
             try {
                 customMediaPlayer = new MediaPlayer(new Media(audioFile.toURI().toString()));
-                customMediaPlayer.setOnEndOfMedia(this::stopAllAudio);
+                attachEndOfMediaHandler(customMediaPlayer, this::stopAllAudio);
                 customMediaPlayer.play();
                 updateMediaButtonStates(true, false);
                 setStatusText("Status: Memutar " + selected);
+                updateRunningText("Custom Audio: " + selected);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -603,8 +725,12 @@ public class MainApp extends Application {
     private void handlePause() {
         if (customMediaPlayer != null && customMediaPlayer.getStatus() == MediaPlayer.Status.PLAYING) {
             customMediaPlayer.pause();
-            updateMediaButtonStates(false, true);
+        } else if (laguMediaPlayer != null && laguMediaPlayer.getStatus() == MediaPlayer.Status.PLAYING) {
+            laguMediaPlayer.pause();
+        } else if (scheduledMediaPlayer != null && scheduledMediaPlayer.getStatus() == MediaPlayer.Status.PLAYING) {
+            scheduledMediaPlayer.pause();
         }
+        updateMediaButtonStates(false, true);
     }
 
     private void pauseMediaForSchedule() {
@@ -614,7 +740,6 @@ public class MainApp extends Application {
         if (customMediaPlayer != null && customMediaPlayer.getStatus() == MediaPlayer.Status.PLAYING) {
             customMediaPlayer.pause();
             customWasPausedBySchedule = true;
-            updateMediaButtonStates(false, true);
         }
 
         if (laguMediaPlayer != null && laguMediaPlayer.getStatus() == MediaPlayer.Status.PLAYING) {
@@ -623,6 +748,7 @@ public class MainApp extends Application {
         }
 
         scheduledMediaPlayer = disposeAndNull(scheduledMediaPlayer);
+        updateMediaButtonStates(false, true);
     }
 
     private void resumeMediaAfterSchedule() {
@@ -642,6 +768,7 @@ public class MainApp extends Application {
             laguWasPausedBySchedule = false;
             if (laguMediaPlayer != null) {
                 laguMediaPlayer.play();
+                updateMediaButtonStates(true, false);
                 if (currentlyPlayingLagu != null) {
                     setStatusText("Status: Memutar " + currentlyPlayingLagu.label());
                 }
@@ -649,7 +776,7 @@ public class MainApp extends Application {
             }
         }
 
-        setStatusText("Status: Menunggu jadwal berikutnya");
+        stopAllAudio();
     }
 
     private void stopAllAudio() {
@@ -668,6 +795,9 @@ public class MainApp extends Application {
         currentlyPlayingLagu = null;
         updateMediaButtonStates(false, false);
         setStatusText("Status: Menunggu jadwal berikutnya");
+
+        // Reset running text ke kondisi default
+        updateRunningText("Tidak ada audio diputar");
     }
 
     private MediaPlayer disposeAndNull(MediaPlayer player) {
@@ -688,10 +818,22 @@ public class MainApp extends Application {
         }
     }
 
+    // =========================================================================
+    // LOGIKA DI-ENABLE / DI-DISABLE TOMBOL KONTROL
+    // =========================================================================
     private void updateMediaButtonStates(boolean isPlaying, boolean isPaused) {
-        if (btnCustomPlay != null) btnCustomPlay.setDisable(isPlaying);
+        boolean hasSelectedCustomAudio = cbCustomAudio != null && cbCustomAudio.getValue() != null && !cbCustomAudio.getValue().isEmpty();
+        boolean canPlayOrResume = isPaused || hasSelectedCustomAudio;
+
+        // Custom Buttons
+        if (btnCustomPlay != null) btnCustomPlay.setDisable(isPlaying || !hasSelectedCustomAudio);
         if (btnCustomPause != null) btnCustomPause.setDisable(!isPlaying);
         if (btnCustomStop != null) btnCustomStop.setDisable(!isPlaying && !isPaused);
+
+        // Central Player Buttons
+        if (btnCentralPlay != null) btnCentralPlay.setDisable(isPlaying || !canPlayOrResume);
+        if (btnCentralPause != null) btnCentralPause.setDisable(!isPlaying);
+        if (btnCentralStop != null) btnCentralStop.setDisable(!isPlaying && !isPaused);
     }
 
     // =========================================================================
