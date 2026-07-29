@@ -35,8 +35,11 @@ import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 
-public class MainApp extends Application {
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
+public class MainApp extends Application {
+    private static final Logger LOGGER = Logger.getLogger(MainApp.class.getName());
     // =========================================================================
     // CONSTANTS & FORMATTERS
     // =========================================================================
@@ -318,7 +321,7 @@ public class MainApp extends Application {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "File tidak dapat dibaca", e);
         }
 
         if (panelJadwal != null && panelJadwal.isVisible()) {
@@ -352,7 +355,7 @@ public class MainApp extends Application {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "File tidak dapat dibaca", e);
         }
 
         renderLaguHariIni();
@@ -375,7 +378,6 @@ public class MainApp extends Application {
             }
             lastModifiedJadwal = file.lastModified();
         } catch (IOException e) {
-            e.printStackTrace();
             showErrorAlert("Error Penyimpanan", "Gagal Menulis File", "Gagal menyimpan jadwal ke file jadwal.dat");
         }
     }
@@ -398,7 +400,7 @@ public class MainApp extends Application {
                         fileList.add(relativePath);
                     });
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Gagal memindai folder", e);
         }
 
         Collections.sort(fileList);
@@ -579,7 +581,7 @@ public class MainApp extends Application {
             String githubUrl = "https://github.com/amuadib/bel-sekolah";
             getHostServices().showDocument(githubUrl);
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Gagal membuka URL", e);
         }
     }
 
@@ -676,7 +678,7 @@ public class MainApp extends Application {
                 laguMediaPlayer.play();
                 updateMediaButtonStates(true, false);
             } catch (Exception e) {
-                e.printStackTrace();
+                LOGGER.log(Level.SEVERE, "Gagal memainkan lagu", e);
             }
         } else {
             String msg = "File lagu \"" + lagu.label() + "\" tidak ditemukan:\n" + audioFile.getAbsolutePath();
@@ -708,7 +710,7 @@ public class MainApp extends Application {
                 setStatusText("Status: Memutar " + selected);
                 updateRunningText("Custom Audio: " + selected);
             } catch (Exception e) {
-                e.printStackTrace();
+                LOGGER.log(Level.SEVERE, "Gagal memainkan lagu", e);
             }
         } else {
             String msg = "File audio custom tidak ditemukan:\n" + audioFile.getAbsolutePath();
@@ -807,7 +809,7 @@ public class MainApp extends Application {
                 player.stop();
                 player.dispose();
             } catch (Exception e) {
-                e.printStackTrace();
+                LOGGER.log(Level.SEVERE, "Gagal menghentikan player", e);
             }
         }
         return null;
@@ -861,7 +863,7 @@ public class MainApp extends Application {
         try {
             SystemTray.getSystemTray().add(trayIcon);
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Error", e);
         }
     }
 
