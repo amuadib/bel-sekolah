@@ -41,6 +41,17 @@ import java.util.logging.Logger;
 
 public class MainApp extends Application {
 
+    // Identitas
+    private String namaLembaga = "SDI Miftahul Ulum Klemunan";
+    private String alamat = "";
+    private String email = "";
+    private String whatsapp = "";
+
+    // Config
+    private boolean autoStart = true;
+    private boolean showJadwalOnStart = true;
+    private boolean editJadwalAllowed = false;
+
     private static final Logger LOGGER = Logger.getLogger(MainApp.class.getName());
 
     // Single Instance Lock Port
@@ -67,7 +78,8 @@ public class MainApp extends Application {
     @FXML private Pane paneRunningText;
     @FXML private Label lblRunningText;
     @FXML private Button btnCentralPlay, btnCentralPause, btnCentralStop;
-    @FXML private Button btnAutoStart;
+    @FXML private Label lblNamaLembaga;
+    @FXML private Button btnTambahJadwal, btnEditJadwal, btnHapusJadwal;
 
     private TranslateTransition runningTextAnimation;
 
@@ -91,6 +103,49 @@ public class MainApp extends Application {
 
     private boolean customWasPausedBySchedule = false;
     private boolean laguWasPausedBySchedule = false;
+
+    private void loadConfigIni() {
+        File configFile = new File("config.ini");
+        if (!configFile.exists()) return;
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(configFile))) {
+            String line;
+            String currentSection = "";
+
+            while ((line = reader.readLine()) != null) {
+                line = line.trim();
+                if (line.isEmpty() || line.startsWith("#") || line.startsWith(";")) continue;
+
+                if (line.startsWith("[") && line.endsWith("]")) {
+                    currentSection = line.substring(1, line.length() - 1).toLowerCase();
+                    continue;
+                }
+
+                String[] parts = line.split("=", 2);
+                if (parts.length < 2) continue;
+
+                String key = parts[0].trim().toLowerCase();
+                String value = parts[1].trim().replaceAll("^\"|\"$", ""); // Hapus tanda kutip
+
+                if ("identitas".equals(currentSection)) {
+                    switch (key) {
+                        case "nama_lembaga" -> namaLembaga = value;
+                        case "alamat" -> alamat = value;
+                        case "email" -> email = value;
+                        case "whatsapp" -> whatsapp = value;
+                    }
+                } else if ("config".equals(currentSection)) {
+                    switch (key) {
+                        case "auto_start" -> autoStart = Boolean.parseBoolean(value);
+                        case "show_jadwal_on_start" -> showJadwalOnStart = Boolean.parseBoolean(value);
+                        case "edit_jadwal_allowed" -> editJadwalAllowed = Boolean.parseBoolean(value);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Gagal membaca config.ini", e);
+        }
+    }
 
     // =========================================================================
     // LIFECYCLE & INITIALIZATION
@@ -120,13 +175,13 @@ public class MainApp extends Application {
             System.exit(0);
             return;
         }
-
+        loadConfigIni();
         Platform.setImplicitExit(false);
 
         FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("view.fxml"));
         Scene scene = new Scene(fxmlLoader.load());
 
-        stage.setTitle("Bel Sekolah - SDI Miftahul Ulum Klemunan");
+        stage.setTitle("Bel Sekolah - " + namaLembaga);
         stage.setResizable(false);
         setupSystemTray(stage);
 
@@ -141,6 +196,19 @@ public class MainApp extends Application {
 
     @FXML
     public void initialize() {
+
+        if (lblNamaLembaga != null) {
+            lblNamaLembaga.setText(namaLembaga);
+        }
+
+        if (btnTambahJadwal != null) btnTambahJadwal.setDisable(!editJadwalAllowed);
+        if (btnEditJadwal != null) btnEditJadwal.setDisable(!editJadwalAllowed);
+        if (btnHapusJadwal != null) btnHapusJadwal.setDisable(!editJadwalAllowed);
+
+        panelJadwal.setVisible(showJadwalOnStart);
+        panelJadwal.setManaged(showJadwalOnStart);
+        btnToggleJadwal.setText(showJadwalOnStart ? "Sembunyikan Jadwal" : "Tampilkan Jadwal");
+
         // Init Kolom Tabel
         colJam.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().jam().toString()));
         colJadwal.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().label()));
@@ -168,45 +236,40 @@ public class MainApp extends Application {
         updateMediaButtonStates(false, false);
         setupRunningTextClipping();
         updateRunningText("Tidak ada audio diputar");
-        checkAutoStartStatus();
+        applyAutoStartConfig();
     }
-    private void checkAutoStartStatus() {
-        if (AutoStartManager.isWindows()) {
-            boolean isAutoStartOn = AutoStartManager.isAutoStartEnabled();
 
-            // Tampilkan tombol HANYA jika Auto-Start belum aktif
-            btnAutoStart.setVisible(!isAutoStartOn);
-            btnAutoStart.setManaged(!isAutoStartOn);
-        } else {
-            btnAutoStart.setVisible(false);
-            btnAutoStart.setManaged(false);
-        }
-    }
-    @FXML
-    private void handleEnableAutoStart() {
-        boolean success = AutoStartManager.enableAutoStart();
-
-        if (success) {
-            Alert alert = new Alert(Alert.AlertType.INFORMATION);
-            alert.setTitle("Auto-Start Windows");
-            alert.setHeaderText("Berhasil Dikonfigurasi");
-            alert.setContentText("Aplikasi Bel Sekolah akan otomatis berjalan setiap kali Windows dinyalakan.");
-            alert.showAndWait();
-
-            // Sembunyikan tombol setelah berhasil
-            checkAutoStartStatus();
-        } else {
-            showErrorAlert("Gagal Auto-Start",
-                    "Tidak Dapat Membuat Auto-Start",
-                    "Gagal menambahkan aplikasi ke folder Startup Windows.");
-        }
-    }
     private boolean checkSingleInstance() {
         try {
             lockSocket = new ServerSocket(PORT_SINGLE_INSTANCE, 1, InetAddress.getByName("127.0.0.1"));
             return true;
         } catch (Exception e) {
             return false;
+        }
+    }
+
+    private void applyAutoStartConfig() {
+        // Hanya berjalan di sistem operasi Windows
+        if (!AutoStartManager.isWindows()) {
+            return;
+        }
+
+        if (autoStart) {
+            // Jika di config.ini auto_start=true dan belum aktif di Registry/Startup, langsung aktifkan
+            if (!AutoStartManager.isAutoStartEnabled()) {
+                boolean success = AutoStartManager.enableAutoStart();
+                if (success) {
+                    LOGGER.info("Auto-Start berhasil diaktifkan secara otomatis via config.ini.");
+                } else {
+                    LOGGER.warning("Gagal mengaktifkan Auto-Start otomatis.");
+                }
+            }
+        } else {
+            // Jika di config.ini auto_start=false dan saat ini aktif, nonaktifkan
+            if (AutoStartManager.isAutoStartEnabled()) {
+                AutoStartManager.disableAutoStart();
+                LOGGER.info("Auto-Start dinonaktifkan via config.ini.");
+            }
         }
     }
 
